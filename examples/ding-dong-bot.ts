@@ -6,7 +6,7 @@
 // https://stackoverflow.com/a/42817956/1123955
 // https://github.com/motdotla/dotenv/issues/89#issuecomment-587753552
 import 'dotenv/config.js'
-
+import axios from 'axios'
 import {
   Contact,
   Message,
@@ -40,16 +40,47 @@ function onLogout (user: Contact) {
   log.info('StarterBot', '%s logout', user)
 }
 
-async function onMessage (msg: Message) {
-  log.info('StarterBot', msg.toString())
+async function getZhiPuRes (msg:any) {
+  const endpoint = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+  const apiKey = '73f90711fd136e2c83ec4eca0bf9c545.lxh8IarqhyM4eYob'
+  const params = {
+    messages: [
+      {
+        content: msg,
+        role: 'user',
+      },
+    ],
+    model: 'glm-4',
+  }
+  try {
+    const response = await axios.post(endpoint, JSON.stringify(params), {
+      headers: {
+        Authorization: apiKey,
+        'Content-Type': 'application/json',
+      },
+    })
+    log.info('getZhiPuRes', response.data.choices.map((item:any) => item.message.content).join(''))
+    return response.data.choices.map((item:any) => item.message.content).join('')
+  } catch (error) {
+    log.error('getZhiPuRes', error)
+  }
+}
 
-  if (msg.text() === 'ding') {
-    await msg.say('dong')
+async function onMessage (msg: Message) {
+  log.info('StarterBot', JSON.stringify(msg))
+  const homeGroupId = '@@d3b7489064d5f5656378a47e125a9a94af0c142633db986961ceef515f6bde1d'
+  const ljpTestGroupId = '@@6d8b369ad32c83e6b52fb12e7656a7bcd2d60e3de29de3344f0a87f4b9bb87fc'
+  const zhongtaiGroupId = '@@9624fcd98efe5f60e9504425ee4fb88522f600efe5c8e0dc2c9338d601a7fac6'
+  if (msg.payload?.roomId === zhongtaiGroupId) {
+    if (msg.text()) {
+      const resMsg = await getZhiPuRes(msg.text())
+      await msg.say(resMsg)
+    }
   }
 }
 
 const bot = WechatyBuilder.build({
-  name: 'ding-dong-bot',
+  name: 'ding-dong-bot-1111',
   /**
    * You can specific `puppet` and `puppetOptions` here with hard coding:
    *
@@ -83,6 +114,8 @@ const bot = WechatyBuilder.build({
   //   token: 'xxx',
   // }
 })
+
+// getZhiPuRes('你会干嘛').catch(() => {})
 
 bot.on('scan',    onScan)
 bot.on('login',   onLogin)
